@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Music and Lyrics</title>
+</head>
+
+<body>
+
+<!-- Our content is rendered to DOM element below -->
+<div id="content"></div>
+
+<!-- React code below-->
+<script type="text/babel">
+
+    var App = React.createClass({
+        //State holds searchResults and type of results that decides type of rendering
+        getInitialState: function () {
+            return {
+                searchResults: [],
+                type: ''
+            }
+
+        },
+        //Make request with input from SearchBox, artistname
+        fetchArtist: function (query, type, url) {
+            console.log("FetchArtist");
+            $.ajax({
+                url: url,
+                data: {
+                    q: query,
+                    type: type
+                },
+                success: function (response) {
+                    console.log("Suxxess!");
+                    console.log(response);
+                    //Update Apps state
+                    this.setState(
+                            {
+                                searchResults: response.artists.items,
+                                type: 'artists'
+                            }
+                    );
+                    console.log(this.state.searchResults);
+                    console.log(this.state.type);
+                }.bind(this)
+            });
+        },
+        //Function requests track belonging to specified artist id
+        fetchTracks: function (id) {
+            console.log("fetchTracks()");
+            console.log(id);
+            $.ajax({
+                url: 'https://api.spotify.com/v1/artists/' + id + '/top-tracks?country=SE',
+                success: function (response) {
+                    console.log("Yes! Got tracks!");
+                    console.log(response);
+                    //Update stat, will render appropriate view
+                    this.setState(
+                            {
+                                searchResults: response.tracks,
+                                type: 'tracks'
+                            }
+                    );
+                }.bind(this)
+            });
+
+        },
+        //fetcjhes lyrics from MusixMatch, first retrieve track id to make new request for lyric for track id
+        fetchLyrics: function (trackName, artist) {
+            var that = this;//to be able to call function in App
+            var artist, title, lyrics, trackID;
+            $.ajax({
+                type: "GET",
+                data: {
+                    apikey: "7824b64e1e1ac28141b21295fb752a74",
+                    q_artist: artist,
+                    q_track: trackName,
+                    format: "jsonp",
+                    callback: "jsonp_callback",
+                    f_has_lyrics: "1"
+                },
+
+                url: "http://api.musixmatch.com/ws/1.1/track.search",
+                dataType: "jsonp",
+                jsonpCallback: 'jsonp_callback',
+                contentType: 'application/json',
+                //Store results to update in state when second request is done
+                success: function (response) {
+                    console.log("Got track_id!");
+                    console.log(response);
+                    console.log("Header.available: " + response.message.header.available);
+                    if (!response.message.header.available) {
+                        console.log("NO RESULTS");
+                        alert('No lyrics found for ' + trackName);
+                        return;
+                    }
+                    console.log(response);
+                    artist = response.message.body.track_list[0].track.artist_name;
+                    title = response.message.body.track_list[0].track.track_name;
+                    trackID = response.message.body.track_list[0].track.track_id;
+
+                    //To make sure previous request is finished before making request for lyrics_id
+                    $.ajax({
+                        type: "GET",
+                        data: {
+                            apikey: "7824b64e1e1ac28141b21295fb752a74",
+                            track_id: trackID,
+                            format: "jsonp",
+                            callback: "jsonp_callback"
+                        },
+                        url: "http://api.musixmatch.com/ws/1.1/track.lyrics.get",
+                        dataType: "jsonp",
+                        jsonpCallback: 'jsonp_callback',
+                        contentType: 'application/json',
+                        success: function (response) {
+                            console.log("Gotlyrics!");
+                            console.log(response);
+                            var lyrics = response.message.body.lyrics.lyrics_body;
+                            console.log(lyrics);
+                            if(lyrics.length < 1){
+                                alert("Sorry, no lyrics found");
+                                return;
+                            }
+                            //Update state with new data and appropriate rendering is done
+                            that.setState({
+                                searchResults: response.message.body.lyrics.lyrics_body,
+                                type: 'lyrics',
+                                artist: artist,
+                                title: title
+                            });
+
+                        }.bind(this)
+                    });
+
+                }.bind(this)
+
+            });
+        },
+        //Render view to display a search window
+        renderSearch: function () {
+            return (
+                    <div className="jumbotron">
+                        <h1>Welcome to music and lyrics</h1>
+                        <SearchBox search={this.fetchArtist}/>
+                    </div>
+            )
+
+
+        },
+        //Render view to display searchwindow and list of artists
+        renderArtists: function () {
+            console.log('renderArtists()');
+
+
+            return (
+                    <div>
+                        <div className="jumbotron">
+                        <SearchBox search={this.fetchArtist}/>
+                        <h4>List of artist matching your search</h4>
+                        </div>
+                        <div className="container text-center">
+
+                            <ArtistList fetchTracks={this.fetchTracks} searchResults={this.state.searchResults}/>
+
+                        </div>
+                    </div>
+
+            )
+
+        },
+        //Render view to display top tracks for chosen artist
+        renderTracks: function () {
+            console.log('renderTracks()');
+            var that = this;
+
+            return (
+                    <div>
+                        <div className="jumbotron">
+                            <SearchBox search={this.fetchArtist}/>
+                            <h4>Fetch Lyrics</h4>
+                        </div>
+                        <div className="card">
+                            {this.state.searchResults.map(function (track) {
+                                return <Track name={track.name}
+                                              lyrics={that.fetchLyrics.bind(null, track.name, track.artists[0].name)}/>
+                            })}</div>
+                    </div>
+            )
+
+        },
+        //Render view to display lyrics for specified artist and track
+        renderLyrics: function () {
+            console.log('renderLyrics()');
+            return (
+                    <div>
+                        <SearchBox search={this.fetchArtist}/>
+                        <h1 className="card-title">Lyrics for {this.state.artist} - {this.state.title}</h1>
+                        <div className="card lyricsCard">
+                            <div className="card-block">
+                                <p className="card-text">{this.state.searchResults}</p>
+
+                            </div>
+                        </div>
+                    </div>
+            )
+
+
+        },
+        //Render function decides wich type of rendering is to be done
+        render: function () {
+            console.log("STATE:");
+            console.log(this.state);
+
+            if (this.state.type == 'artists') {
+                return (
+                        this.renderArtists()
+                )
+            } else if (this.state.type == 'tracks') {
+                return (
+                        this.renderTracks()
+                )
+            } else if (this.state.type == 'lyrics') {
+                return (
+                        this.renderLyrics()
+                )
+            } else {
+                return (
+                        this.renderSearch()
+                )
+            }
+        }
+    });
+
+    //A search box component
+    var SearchBox = React.createClass({
+        makeRequests: function () {
+            //Get text from input field
+            var query = ReactDOM.findDOMNode(this.refs.query).value;
+            console.log("Make requests about: " + query);
+            //https://api.spotify.com/v1/search?q=coldplay&type=artist
+            if (query.length > 1) {
+                this.props.search(query, 'artist', 'https://api.spotify.com/v1/search?');
+            } else {
+                alert("Enter an artist!");
+            }
+
+        },
+        render: function () {
+            return (
+
+                    <div className="jumbotron text-center">
+                        <div className="col-lg-12">
+                            <div className="input-group">
+                                <input className="form-control" type="text" ref="query"
+                                       placeholder="Search for artist"/>
+                                <span class="input-group-btn">
+                                    <button className="btn btn-primary" type="button" onClick={this.makeRequests}>
+                                        Search Artist
+                                    </button>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+            )
+        }
+    });
+
+    //Component that renders each artist in the result Array
+    var ArtistList = React.createClass({
+
+        eachItem: function (item, index, that) {
+            console.log("Image? " + item.images.length);
+            var imageUrl = "http://www.51allout.co.uk/wp-content/uploads/2012/02/Image-not-found.gif";
+            if (item.images.length > 0) {
+                imageUrl = item.images[0].url;
+            }
+            return (
+                    <Artist getTracks={this.props.fetchTracks} name={item.name} id={item.id} image={imageUrl}/>
+            );
+
+        },
+        render: function () {
+            return (
+                    <div>
+                        {this.props.searchResults.map(this.eachItem)}
+                    </div>
+            )
+        }
+    });
+
+    //Component rendering one artist item
+    var Artist = React.createClass({
+
+        //Specify current id to retrieve top tracks for specified artist
+        getTopTracks: function () {
+            console.log("Get top tracks for id: " + this.props.id);
+            this.props.getTracks(this.props.id);
+
+        },
+        render: function () {
+            return (
+                    <div className="artistCard card">
+                        <img src={this.props.image} height="200" width="200"/>
+                        <h4>
+                            <a onClick={this.getTopTracks}>{this.props.name} </a>
+                        </h4>
+                        <button className="artistBtn btn btn-primary" onClick={this.getTopTracks}>Get Top Tracks</button>
+
+
+                    </div>
+            )
+        }
+
+    });
+
+
+    //Component rendering a track item, also a button to retireve lyrics for current track
+    var Track = React.createClass({
+        render: function () {
+            return (
+                    <div className="card">
+                        <h3 className="card-title">{this.props.name}</h3>
+
+                        <button className="btn btn-success" onClick={this.props.lyrics}>Get Lyrics</button>
+                    </div>
+            )
+        }
+    });
+
+    ReactDOM.render(<App />,
+            document.getElementById('content'));
+
+</script>
+
+<!-- Link to React.js -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+<script src="js/react.min.js"></script>
+<script src="js/react-dom.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.23/browser.min.js"></script>
+
+
+<!--Link to bootstrap for styling-->
+<!-- Latest compiled and minified CSS -->
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"
+      integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+
+<!-- Link to custom css -->
+<link rel="stylesheet" href="css/styles.css"/>
+</body>
+</html>

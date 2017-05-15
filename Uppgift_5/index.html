@@ -1,0 +1,225 @@
+<!doctype html>
+<html>
+<head>
+    <title>React-starter-kit</title>
+    <meta charset="utf-8">
+    <script src="js/react.min.js"></script>
+    <script src="js/react-dom.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.23/browser.min.js"></script>
+    <!--Link to bootstrap for styling-->
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"
+          integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+
+    <link rel="stylesheet" href="css/styles.css"/>
+</head>
+<body>
+<!-- Rot-elementet för vår React-applikation -->
+<div class="jumbotron text-center">
+    <h1>Inlämningsuppgift 5!</h1>
+
+    <h2>Add or edit your movie database!</h2>
+</div>
+<div id="container"></div>
+
+
+<script src="js/albums.js"></script>
+
+<script type="text/babel">
+
+    // Below is a MovieList component created with React, this component contains an array (database) of the Component Movies
+    // A user is able to add new Movies, delete existing movies and edit a specific movie
+
+    //One Movie
+    var Movie = React.createClass({
+        //Set initial state to editin=false
+        getInitialState: function () {
+            return {
+                editing: false
+            };
+        },
+        //If edit button is pressed, state: editing is cahnged to true and the rendering changes into a form
+        edit: function () {
+            this.setState({editing: true});
+        },
+        //If the save button is clicked, save the value and change Movie state: editing = false
+        save: function () {
+            //retrieve the values from form fields with ref
+            var title = this.refs.newTitle.value;
+            var year = this.refs.newYear.value;
+            var rate = this.refs.newRate.value;
+            console.log("Updating: " + this.props.index + " : " + title + " " + year + " " + rate);
+            //Update component in database with function passed to it from parent Component (MovieList)
+            //Parameters, new values and index that will specify which component we are dealing with
+            this.props.updateList(title, year, rate, this.props.index);
+            //Change rendering
+            this.setState({editing: false});
+
+        },
+        //If the delete button is clicked, remove element from list
+        delete: function () {
+            this.props.deleteFromList(this.props.index);
+        },
+        //Render a movie as a list with title, year and rate,
+        //Two buttons, edit and delete
+        renderNormal: function () {
+            return (
+                    <div className="panel panel-default">
+                        <div className="movieTitle">
+                            <h3>{this.props.title}</h3>
+                        </div>
+                        <div className="well">
+                            <h4>
+                                <label className="label">Year of release: {this.props.year}</label>
+                            </h4>
+                            <br/>
+                            <br/>
+                            <h4>
+                                <label className="label">Rated: {this.props.rate}</label>
+                            </h4>
+                        </div>
+                        <div className="button-group">
+                            <button className="btn btn-primary btn-lg" onClick={this.edit}>Edit</button>
+                            <button className="btn btn-primary btn-lg" onClick={this.delete}>Remove</button>
+                        </div>
+
+
+                    </div>
+            )
+                    ;
+        },
+        //If the state: editing is true, change rendering into a form where user can edit movie
+        //Populate fields with this components prop: title, year etc.
+        renderEditing: function () {
+            return (
+                    <div className="panel panel-default">
+                        <div className="movieTitle">
+                            <h3>{this.props.title}</h3>
+                        </div>
+                        <div className="well">
+                            <h4>
+                                <label className="label">Title:</label>
+                                <textarea ref="newTitle" defaultValue={this.props.title}></textarea>
+                            </h4>
+
+                            <h4>
+                                <label className="label">Year:</label>
+                                <textarea ref="newYear" defaultValue={this.props.year}></textarea>
+                            </h4>
+                            <h4>
+                                <label className="label">Rating:</label>
+                                <textarea ref="newRate" defaultValue={this.props.rate}></textarea>
+                            </h4>
+
+                        </div>
+                        <div className="button-group">
+                            <button className="btn btn-primary btn-lg" onClick={this.save}>Save</button>
+                        </div>
+                    </div>
+            )
+        },
+        render: function () {
+            if (this.state.editing) {
+                return (
+                        this.renderEditing()
+                )
+            } else {
+                return (
+                        this.renderNormal()
+                );
+            }
+
+        }
+    });
+
+    var MovieList = React.createClass({
+        //Set initial state with an array of movies
+        getInitialState: function () {
+            return {
+                movies: [
+                    {
+                        title: 'Batman',
+                        year: '1984',
+                        rate: '5'
+                    },
+                    {
+                        title: 'Heat',
+                        year: '1990',
+                        rate: '8'
+                    },
+                    {
+                        title: 'Harry Potter',
+                        year: '2004',
+                        rate: '2'
+                    }
+
+                ]
+            }
+        },
+        //Update a movie with given props and index
+        updateList: function (title, year, rate, index) {
+            //Retrieve state (movies)
+            var array = this.state.movies;
+            //Set new state to array
+            array[index].title = title;
+            array[index].year = year;
+            array[index].rate = rate;
+            //Set new state to updated array
+            this.setState({movies: array});
+        },
+        //delete specified movie from list specified by index
+        deleteFromList: function (index) {
+            console.log("Deleting movie with index: " + index);
+            //Retrieve state (movies)
+            var array = this.state.movies;
+            //Remove specified index
+            array.splice(index, 1);
+            //Update state with new array
+            this.setState({movies: array});
+        },
+        addMovie: function () {
+            //Retrieve state (movies) and add new element
+            console.log("Adding to Array: ");
+            var array = this.state.movies;
+            //Create empty element
+            var newMovie = {
+                title: 'Click Edit to enter title',
+                year: 'Click Edit to enter year',
+                rate: 'Click Edit to enter rate'
+            };
+            //add element to array
+            array.push(newMovie);
+            array.reverse();//So that new Movie ends up on the top of the screen
+            console.log(array.length);
+            //Update state (movies)
+            this.setState({movies: array});
+        },
+        //Render one movie and set it's props and send the component functions to handle update and delete
+        eachMovie: function (movie, index) {
+            return (
+                    <Movie title={movie.title} index={index} year={movie.year} rate={movie.rate}
+                           updateList={this.updateList} deleteFromList={this.deleteFromList}></Movie>
+
+            );
+        },
+        render: function () {
+            return (
+                    //Loop through the database of arrays and create components of each
+                    //Button creates new movie
+                    <div className="container">
+                        <button className="btn-success btn-lg btn-block"
+                                onClick={this.addMovie.bind(null, "Click Edit")}>Add New Movie
+                        </button>
+                        {this.state.movies.map(this.eachMovie)}
+                    </div>
+            );
+        }
+    });
+
+    ReactDOM.render(<MovieList/>, document.getElementById('container'));
+
+
+</script>
+</body>
+</html>

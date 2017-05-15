@@ -1,0 +1,33 @@
+/* Placera er stilmall här */
+
+.label {
+    color: #2b2b2b;
+    font-size: 20px;
+    display: block;
+    float: left;
+    padding: 0px;
+    width: 100px;
+    margin-top: 10px;
+}
+
+.well{
+    height: 200px;
+}
+
+.btn{
+    margin: 10px;
+}
+
+.button-group{
+    text-align: center;
+}
+
+.movieTitle{
+    text-align: center;
+}
+
+.panel{
+    margin-top: 50px;
+}
+
+

@@ -1,0 +1,30 @@
+/* Placera er stilmall här */
+body{
+    background: #d5d5d5;
+    font-family: arial;
+    text-align: center;
+}
+
+
+.jumbotron .input-group{
+    margin: 0 auto;
+
+}
+
+.jumbotron button{
+    margin: 30px 0 30px 0;
+}
+
+.container{
+    width: 600px;
+}
+
+.artistCard{
+    margin-bottom: 30px;
+}
+
+.lyricsCard{
+    width: 400px;
+    text-align: center;
+    margin: 0 auto;
+}
